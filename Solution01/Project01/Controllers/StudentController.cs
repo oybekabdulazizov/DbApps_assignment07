@@ -10,16 +10,10 @@ using Project01.Services;
 namespace Project01.Controllers
 {
     [Route("api/students")]
+    [Authorize]
     [ApiController]
     public class StudentController : ControllerBase
     {
-
-        /*[HttpGet]
-        [Authorize]
-        public IActionResult GetStudents() 
-        {
-            return Ok("hello");
-        }*/
 
         public readonly IDbService _idbservice;
 
@@ -29,7 +23,6 @@ namespace Project01.Controllers
         }
 
         [HttpGet]
-        [Authorize]
         public IActionResult GetStudents()
         {
             var result = _idbservice.GetStudents();
@@ -42,7 +35,6 @@ namespace Project01.Controllers
         }
 
         [HttpGet("{index}")]
-        [AllowAnonymous]
         public IActionResult GetStudent(string index)
         {
             var result = _idbservice.GetStudent(index);
