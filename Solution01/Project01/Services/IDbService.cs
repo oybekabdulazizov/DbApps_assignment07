@@ -1,4 +1,6 @@
-﻿using Project01.DTOs.Requests;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
+using Project01.DTOs.Requests;
 using Project01.DTOs.Responses;
 using Project01.Models;
 using System;
@@ -14,6 +16,6 @@ namespace Project01.Services
         public Student GetStudent(string index);
         public EnrollmentResponse EnrollStudent(EnrollmentRequest request);
         public PromotionResponse PromoteStudents(PromotionRequest request);
-
+        public LoginResponse Login(LoginRequest request);
     }
 }

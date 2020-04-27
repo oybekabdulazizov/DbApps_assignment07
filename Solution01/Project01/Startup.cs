@@ -42,7 +42,7 @@ namespace Project01
                         ValidateLifetime = true,
                         ValidIssuer = "Oybek",
                         ValidAudience = "everyone",
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["SecretKey"]))
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Key"]))
                     };
                 });
 

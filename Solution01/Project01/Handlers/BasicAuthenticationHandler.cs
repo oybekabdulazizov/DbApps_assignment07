@@ -24,6 +24,8 @@ namespace Project01.Handlers
             ) : base(options, logger, encoder, clock)
         { }
 
+
+        // THIS IS BASIC AUTHENTICATION FUNCTION =================================================================================================
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             if (!Request.Headers.ContainsKey("Authorization")) 

@@ -1,4 +1,8 @@
-﻿using Project01.DTOs.Requests;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using Project01.DTOs.Requests;
 using Project01.DTOs.Responses;
 using Project01.Helpers;
 using Project01.Models;
@@ -6,7 +10,10 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -14,6 +21,7 @@ namespace Project01.Services
 {
     public class SqlServerDbService : IDbService
     {
+
         public Student GetStudent(string index)
         {
             Student student = new Student();
@@ -212,8 +220,6 @@ namespace Project01.Services
             }
         }
 
-
-
         public PromotionResponse PromoteStudents(PromotionRequest request)
         {
             PromotionResponse response;
@@ -242,6 +248,17 @@ namespace Project01.Services
             }
 
             return response;
+        }
+
+        public LoginResponse Login(LoginRequest request) 
+        {
+            
+
+            return new LoginResponse
+            {
+                Login = "hello", 
+                FirstName = "Oybek"
+            };
         }
     }
 }

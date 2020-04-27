@@ -23,6 +23,7 @@ namespace Project01.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "employee")]
         public IActionResult GetStudents()
         {
             var result = _idbservice.GetStudents();
@@ -35,6 +36,7 @@ namespace Project01.Controllers
         }
 
         [HttpGet("{index}")]
+        [Authorize(Roles = "employee")]
         public IActionResult GetStudent(string index)
         {
             var result = _idbservice.GetStudent(index);
