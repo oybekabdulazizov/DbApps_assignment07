@@ -251,10 +251,10 @@ namespace Project01.Services
             return response;
         }
 
-        public LoginResponse Login(LoginRequest request) 
+        public string Login(LoginRequest request)
         {
-            LoginResponse response;
-            using (var connection = new SqlConnection(SqlServerDb.connectionString)) 
+            string _firstName, _salt;
+            using (var connection = new SqlConnection(SqlServerDb.connectionString))
             {
                 using (var command = new SqlCommand())
                 {
@@ -262,77 +262,61 @@ namespace Project01.Services
                     if (request.Login == null || request.Login.Trim() == null ||
                                 request.Password.Trim() == null || request.Password.Trim() == null)
                     {
-                        return null;
+                        return "0"; // Bad Request 
                     }
 
                     command.Connection = connection;
-                    command.CommandText = @"SELECT FirstName, LastName FROM Student WHERE IndexNumber=@login;";
-                    command.Parameters.AddWithValue("login", request.Login);
+                    command.CommandText = @"SELECT * FROM Student WHERE IndexNumber=@id;";
+                    command.Parameters.AddWithValue("id", request.Login);
                     connection.Open();
-
-                    string firstName;
-                    using (var dr = command.ExecuteReader())
+                    var dr = command.ExecuteReader();
+                    if (!dr.Read())
                     {
-                        if (!dr.Read())
-                        {
-                            return null;
-                        }
-                        firstName = dr["FirstName"].ToString();
+                        return "-1"; // Student Not Found
                     }
+                    _firstName = dr["FirstName"].ToString();
+                    dr.Close();
 
-                    command.CommandText = @"SELECT FirstName, SaltValue FROM Salt WHERE IdNumber=@loginn;";
-                    command.Parameters.AddWithValue("loginn", request.Login);
 
-                    string salt;
+                    command.CommandText = @"SELECT * FROM Salt WHERE IdNumber=@login;";
+                    command.Parameters.AddWithValue("login", request.Login);
+
                     var dr2 = command.ExecuteReader();
                     if (!dr2.Read())
                     {
-                        salt = Generator.CreateSalt();
-                        command.CommandText = @"INSERT INTO Salt VALUES (@loginnn, @name, @salt);";
-                        command.Parameters.AddWithValue("loginnn", request.Login);
-                        command.Parameters.AddWithValue("name", firstName);
-                        command.Parameters.AddWithValue("salt", salt);
-                        dr2.Close();
-                        command.ExecuteNonQuery();
+                        return "-2"; // Salt Not Found
                     }
-                    else
-                    {
-                        salt = dr2["SaltValue"].ToString();
-                        dr2.Close();
-                    }
+                    _salt = dr2["SaltValue"].ToString();
+                    dr2.Close();
 
-                    var hashedPassword = Generator.Hash(request.Password, salt);
+                    var hashedPassword = Generator.Hash(request.Password, _salt);
                     command.CommandText = @"SELECT IndexNumber, FirstName FROM Student 
-                                            WHERE IndexNumber=@loginnnn AND Password=@password;";
-                    command.Parameters.AddWithValue("loginnnn", request.Login);
+                                            WHERE IndexNumber=@indexNumber AND Password=@password;";
+                    command.Parameters.AddWithValue("indexNumber", request.Login);
                     command.Parameters.AddWithValue("password", hashedPassword);
                     using (var dr3 = command.ExecuteReader())
                     {
                         if (!dr3.Read())
                         {
-                            return null;
+                            return "-3"; // Bad Request(Wrong password)
                         }
-
-                        response = new LoginResponse();
-                        response.Login = dr3["IndexNumber"].ToString();
-                        response.FirstName = dr3["FristName"].ToString();
                     }
 
-                    return response;
+                    return _firstName;
                 }
             }
         }
 
-        public void SaveToken(string login, string token)
+        public void SaveRefreshToken(string login, string refreshToken)
         {
             using (var connection = new SqlConnection(SqlServerDb.connectionString)) 
             {
                 using (var command = new SqlCommand()) 
                 {
                     command.Connection = connection;
-                    command.CommandText = @"INSERT INTO Tokens VALUES (@login, @token);";
+                    command.CommandText = @"INSERT INTO Token VALUES (@login, @token);";
                     command.Parameters.AddWithValue("login", login);
-                    command.Parameters.AddWithValue("token", token);
+                    command.Parameters.AddWithValue("token", refreshToken);
                     connection.Open();
                     command.ExecuteNonQuery();
                 }
@@ -364,6 +348,68 @@ namespace Project01.Services
                     command.ExecuteNonQuery();
 
                     return response;
+                }
+            }
+        }
+
+        public int AddPasswordAndSalt(LoginRequest request) 
+        {
+
+            if (request.Login == null || request.Login.Trim() == null ||
+                                request.Password.Trim() == null || request.Password.Trim() == null)
+            {
+                return 0; // Bad Request 
+            }
+
+            string _firstName, _salt, _readyPassword;
+            using (var connection = new SqlConnection(SqlServerDb.connectionString))
+            {
+                using (var command = new SqlCommand())
+                {
+
+                    command.Connection = connection;
+                    command.CommandText = @"SELECT * FROM Student WHERE IndexNumber=@login;";
+                    command.Parameters.AddWithValue("login", request.Login);
+                    connection.Open();
+                    var transaction = connection.BeginTransaction();
+                    command.Transaction = transaction;
+
+                    using (var dr = command.ExecuteReader())
+                    {
+                        if (!dr.Read())
+                        {
+                            return -1; // Not Found 
+                        }
+                        _firstName = dr["FirstName"].ToString();
+                    }
+
+                    command.CommandText = @"SELECT * FROM Salt WHERE IdNumber=@loginn;";
+                    command.Parameters.AddWithValue("loginn", request.Login);
+                    var dr2 = command.ExecuteReader();
+                    if (!dr2.Read())
+                    {
+                        _salt = Generator.CreateSalt();
+                        command.CommandText = @"INSERT INTO Salt VALUES (@id, @name, @salt);";
+                        command.Parameters.AddWithValue("id", request.Login);
+                        command.Parameters.AddWithValue("name", _firstName);
+                        command.Parameters.AddWithValue("salt", _salt);
+                        dr2.Close();
+                        command.ExecuteNonQuery();
+                    }
+                    else
+                    {
+                        _salt = dr2["SaltValue"].ToString();
+                        dr2.Close();
+                    }
+
+                    _readyPassword = Generator.Hash(request.Password, _salt);
+                    command.CommandText = @"UPDATE Student SET Password=@pass WHERE IndexNumber=@index;";
+                    command.Parameters.AddWithValue("pass", _readyPassword);
+                    command.Parameters.AddWithValue("index", request.Login);
+                    command.ExecuteNonQuery();
+
+                    transaction.Commit();
+                    return 1;
                 }
             }
         }

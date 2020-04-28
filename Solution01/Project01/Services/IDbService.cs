@@ -17,10 +17,9 @@ namespace Project01.Services
         public Student GetStudent(string index);
         public EnrollmentResponse EnrollStudent(EnrollmentRequest request);
         public PromotionResponse PromoteStudents(PromotionRequest request);
-        public LoginResponse Login(LoginRequest request);
-        // public string AddSalt(LoginRequest request);
-
-        public void SaveToken(string login, string token);
+        public string Login(LoginRequest request);
+        public void SaveRefreshToken(string login, string token);
         public string ValidateToken(string token);
+        public int AddPasswordAndSalt(LoginRequest request);
     }
 }

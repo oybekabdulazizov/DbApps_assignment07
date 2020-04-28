@@ -54,16 +54,28 @@ namespace Project01.Controllers
         [HttpPost("login")]
         public IActionResult Login(LoginRequest request)
         {
-            var response = _idbService.Login(request);
-            if (response == null) 
+            var validatedUser = _idbService.Login(request);
+            if (validatedUser.Contains("0"))
             {
-                return BadRequest("Invalid login or password!");
+                return BadRequest("Please enter valid values!");
+            }
+            else if (validatedUser.Contains("-1"))
+            {
+                return NotFound("This user does not exist!");
+            }
+            else if (validatedUser.Contains("-2"))
+            {
+                return NotFound("User with this login exists. However, you need to assign a salt for him/her.");
+            }
+            else if (validatedUser.Contains("-3")) 
+            {
+                return BadRequest();
             }
 
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, request.Login),
-                new Claim(ClaimTypes.Name, response.FirstName),
+                new Claim(ClaimTypes.Name, validatedUser),
                 new Claim(ClaimTypes.Role, "employee")
             };
 
@@ -79,13 +91,15 @@ namespace Project01.Controllers
                 signingCredentials: credentials
              );
 
+            Guid refreshToken = Guid.NewGuid();
+
             // == we need to save the token here and proceed
-            _idbService.SaveToken(response.Login, token.ToString());
+            _idbService.SaveRefreshToken(request.Login, refreshToken.ToString());
 
             return Ok(new
             {
                 token = new JwtSecurityTokenHandler().WriteToken(token),
-                refreshToken = Guid.NewGuid()
+                refreshToken = refreshToken
             });
 
         }
@@ -116,13 +130,14 @@ namespace Project01.Controllers
                 expires: DateTime.Now.AddMinutes(15),
                 signingCredentials: credentials
              );
+            Guid refreshToken = Guid.NewGuid();
 
-            _idbService.SaveToken(validateTokenLogin, newToken.ToString());
+            _idbService.SaveRefreshToken(validateTokenLogin, refreshToken.ToString());
 
             return Ok(new
             {
                 token = new JwtSecurityTokenHandler().WriteToken(newToken),
-                refreshToken = Guid.NewGuid()
+                refreshToken = refreshToken
             });
 
         }
