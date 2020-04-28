@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Project01.DTOs.Requests;
 using Project01.DTOs.Responses;
@@ -252,13 +253,120 @@ namespace Project01.Services
 
         public LoginResponse Login(LoginRequest request) 
         {
-            
-
-            return new LoginResponse
+            LoginResponse response;
+            using (var connection = new SqlConnection(SqlServerDb.connectionString)) 
             {
-                Login = "hello", 
-                FirstName = "Oybek"
-            };
+                using (var command = new SqlCommand())
+                {
+
+                    if (request.Login == null || request.Login.Trim() == null ||
+                                request.Password.Trim() == null || request.Password.Trim() == null)
+                    {
+                        return null;
+                    }
+
+                    command.Connection = connection;
+                    command.CommandText = @"SELECT FirstName, LastName FROM Student WHERE IndexNumber=@login;";
+                    command.Parameters.AddWithValue("login", request.Login);
+                    connection.Open();
+
+                    string firstName;
+                    using (var dr = command.ExecuteReader())
+                    {
+                        if (!dr.Read())
+                        {
+                            return null;
+                        }
+                        firstName = dr["FirstName"].ToString();
+                    }
+
+                    command.CommandText = @"SELECT FirstName, SaltValue FROM Salt WHERE IdNumber=@loginn;";
+                    command.Parameters.AddWithValue("loginn", request.Login);
+
+                    string salt;
+                    var dr2 = command.ExecuteReader();
+                    if (!dr2.Read())
+                    {
+                        salt = Generator.CreateSalt();
+                        command.CommandText = @"INSERT INTO Salt VALUES (@loginnn, @name, @salt);";
+                        command.Parameters.AddWithValue("loginnn", request.Login);
+                        command.Parameters.AddWithValue("name", firstName);
+                        command.Parameters.AddWithValue("salt", salt);
+                        dr2.Close();
+                        command.ExecuteNonQuery();
+                    }
+                    else
+                    {
+                        salt = dr2["SaltValue"].ToString();
+                        dr2.Close();
+                    }
+
+                    var hashedPassword = Generator.Hash(request.Password, salt);
+                    command.CommandText = @"SELECT IndexNumber, FirstName FROM Student 
+                                            WHERE IndexNumber=@loginnnn AND Password=@password;";
+                    command.Parameters.AddWithValue("loginnnn", request.Login);
+                    command.Parameters.AddWithValue("password", hashedPassword);
+                    using (var dr3 = command.ExecuteReader())
+                    {
+                        if (!dr3.Read())
+                        {
+                            return null;
+                        }
+
+                        response = new LoginResponse();
+                        response.Login = dr3["IndexNumber"].ToString();
+                        response.FirstName = dr3["FristName"].ToString();
+                    }
+
+                    return response;
+                }
+            }
         }
+
+        public void SaveToken(string login, string token)
+        {
+            using (var connection = new SqlConnection(SqlServerDb.connectionString)) 
+            {
+                using (var command = new SqlCommand()) 
+                {
+                    command.Connection = connection;
+                    command.CommandText = @"INSERT INTO Tokens VALUES (@login, @token);";
+                    command.Parameters.AddWithValue("login", login);
+                    command.Parameters.AddWithValue("token", token);
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public string ValidateToken(string token) 
+        {
+            string response;
+            using (var connection = new SqlConnection(SqlServerDb.connectionString)) 
+            {
+                using (var command = new SqlCommand()) 
+                {
+                    command.Connection = connection;
+                    command.CommandText = @"SELECT IndexNumber, Token FROM Token WHERE Token=@token;";
+                    command.Parameters.AddWithValue("token", token);
+                    connection.Open();
+                    using (var dr4 = command.ExecuteReader()) 
+                    {
+                        if (!dr4.Read()) 
+                        {
+                            return null;
+                        }
+                        response = dr4["IndexNumber"].ToString();   
+                    }
+
+                    command.CommandText = @"DELETE FROM Token WHERE Token=@oldToken;";
+                    command.Parameters.AddWithValue("oldToken", token);
+                    command.ExecuteNonQuery();
+
+                    return response;
+                }
+            }
+        }
+
     }
 }

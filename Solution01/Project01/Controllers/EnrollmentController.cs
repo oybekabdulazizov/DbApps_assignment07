@@ -54,34 +54,17 @@ namespace Project01.Controllers
         [HttpPost("login")]
         public IActionResult Login(LoginRequest request)
         {
-            using (var connection = new SqlConnection(SqlServerDb.connectionString))
+            var response = _idbService.Login(request);
+            if (response == null) 
             {
-                using (var command = new SqlCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText = @"Select 1 FROM Student WHERE IndexNumber=@login;";
-                    command.Parameters.AddWithValue("login", request.Login);
-                    connection.Open();
-
-                    using (var dr = command.ExecuteReader())
-                    {
-                        if (!dr.Read())
-                        {
-                            return NotFound($"Student with {request.Login} index number does not exist!");
-                        }
-                    }
-
-                    command.CommandText = @"UPDATE Student SET Password=@password WHERE IndexNumber=@index;";
-                    command.Parameters.AddWithValue("@password", request.Password);
-                    command.Parameters.AddWithValue("@index", request.Login);
-                    command.ExecuteNonQuery();
-                }
+                return BadRequest("Invalid login or password!");
             }
 
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, request.Login),
-                new Claim(ClaimTypes.Role, "student")
+                new Claim(ClaimTypes.Name, response.FirstName),
+                new Claim(ClaimTypes.Role, "employee")
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Key"]));
@@ -96,9 +79,49 @@ namespace Project01.Controllers
                 signingCredentials: credentials
              );
 
+            // == we need to save the token here and proceed
+            _idbService.SaveToken(response.Login, token.ToString());
+
             return Ok(new
             {
                 token = new JwtSecurityTokenHandler().WriteToken(token),
+                refreshToken = Guid.NewGuid()
+            });
+
+        }
+
+        [HttpPost("refresh-token/{token}")]
+        public IActionResult RefreshToken(string token) 
+        {
+            var validateTokenLogin = _idbService.ValidateToken(token);
+            if (validateTokenLogin == null) 
+            {
+                return NotFound("This token does not exist!");
+            }
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, validateTokenLogin),
+                new Claim(ClaimTypes.Role, "employee")
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Key"]));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var newToken = new JwtSecurityToken
+             (
+                issuer: "Oybek",
+                audience: "everyone",
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(15),
+                signingCredentials: credentials
+             );
+
+            _idbService.SaveToken(validateTokenLogin, newToken.ToString());
+
+            return Ok(new
+            {
+                token = new JwtSecurityTokenHandler().WriteToken(newToken),
                 refreshToken = Guid.NewGuid()
             });
 
