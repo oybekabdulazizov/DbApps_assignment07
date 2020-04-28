@@ -251,6 +251,7 @@ namespace Project01.Services
             return response;
         }
 
+        // checks if username and password are valid and correct
         public string Login(LoginRequest request)
         {
             string _firstName, _salt;
@@ -307,6 +308,7 @@ namespace Project01.Services
             }
         }
 
+        // saves each and every login and refresh-tokens
         public void SaveRefreshToken(string login, string refreshToken)
         {
             using (var connection = new SqlConnection(SqlServerDb.connectionString)) 
@@ -323,6 +325,7 @@ namespace Project01.Services
             }
         }
 
+        // validates and renews refresh-tokens 
         public string ValidateToken(string token) 
         {
             string response;
@@ -352,6 +355,7 @@ namespace Project01.Services
             }
         }
 
+        // if a salt for a user does not exist, this method adds a salt for a user and hashes the password for the security
         public int AddPasswordAndSalt(LoginRequest request) 
         {
 
