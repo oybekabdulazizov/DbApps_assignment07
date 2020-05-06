@@ -91,15 +91,15 @@ namespace Project01.Controllers
                 signingCredentials: credentials
              );
 
-            Guid refreshToken = Guid.NewGuid();
+            Guid refreshedToken = Guid.NewGuid();
 
             // == we need to save the token here and proceed
-            _idbService.SaveRefreshToken(request.Login, refreshToken.ToString());
+            _idbService.SaveRefreshToken(request.Login, refreshedToken.ToString());
 
             return Ok(new
             {
                 token = new JwtSecurityTokenHandler().WriteToken(token),
-                refreshToken = refreshToken
+                refreshToken = refreshedToken
             });
 
         }
@@ -130,14 +130,14 @@ namespace Project01.Controllers
                 expires: DateTime.Now.AddMinutes(15),
                 signingCredentials: credentials
              );
-            Guid refreshToken = Guid.NewGuid();
+            Guid refreshedToken = Guid.NewGuid();
 
-            _idbService.SaveRefreshToken(validateTokenLogin, refreshToken.ToString());
+            _idbService.SaveRefreshToken(validateTokenLogin, refreshedToken.ToString());
 
             return Ok(new
             {
                 token = new JwtSecurityTokenHandler().WriteToken(newToken),
-                refreshToken = refreshToken
+                refreshToken = refreshedToken
             });
 
         }
