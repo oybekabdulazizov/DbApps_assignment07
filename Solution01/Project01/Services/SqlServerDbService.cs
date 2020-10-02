@@ -355,7 +355,8 @@ namespace Project01.Services
             }
         }
 
-        // if a salt for a user does not exist, this method adds a salt for a user and hashes the password for the security
+        // if a salt for a user does not exist, this method adds a salt for a user and 
+        // hashes the password for the security
         public int AddPasswordAndSalt(LoginRequest request) 
         {
 

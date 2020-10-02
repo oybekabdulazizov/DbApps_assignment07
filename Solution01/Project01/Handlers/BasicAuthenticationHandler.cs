@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace Project01.Handlers
 {
     public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
-    {
+    { 
 
         public BasicAuthenticationHandler(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -57,7 +57,7 @@ namespace Project01.Handlers
             // this is something like a passport
             var identity = new ClaimsIdentity(claims, Scheme.Name);
 
-            // this is something like a wallet. We can have multiple identities within a single wallet 
+            // this is like a wallet. We can have multiple identities within a single wallet 
             // (e.g. sometimes within a single web app, we can use multiple authentication/authorization)
             var principal = new ClaimsPrincipal(identity); 
 
